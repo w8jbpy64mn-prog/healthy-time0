@@ -1,0 +1,51 @@
+openapi: 3.0.3
+info:
+  title: Healthy Time API
+  version: 0.1.0
+servers:
+  - url: https://api.healthytime.local
+paths:
+  /admin/auth/login:
+    post:
+      summary: Admin login
+      responses:
+        '200':
+          description: OK
+  /admin/customers:
+    get:
+      summary: List customers
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create customer + subscription + customer link
+      responses:
+        '201':
+          description: Created
+  /admin/subscriptions/{id}/toggle-link:
+    post:
+      summary: Enable/disable customer link
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Updated
+  /customer/{token}/profile:
+    get:
+      summary: Customer dashboard data
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Link inactive or subscription expired
+  /customer/{token}/selections:
+    post:
+      summary: Save meal selections for a day with limits validation
+      responses:
+        '200':
+          description: Saved
+        '422':
+          description: Exceeded subscription limits
