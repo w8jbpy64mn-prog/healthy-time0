@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Healthy Time Admin</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+<header>
+  <h2>Healthy Time | لوحة الإدارة</h2>
+  <small>تجريبي تشغيلي - إدارة العملاء والاشتراكات وروابط العملاء</small>
+</header>
+<main>
+  <section id="loginCard" class="card">
+    <h3>دخول الإدارة</h3>
+    <input id="username" value="admin" placeholder="اسم المستخدم" />
+    <input id="password" value="HealthyTime@2026" placeholder="كلمة المرور" type="password" />
+    <button id="loginBtn">دخول</button>
+    <div id="loginMsg" class="muted"></div>
+  </section>
+
+  <section id="adminArea" class="hidden">
+    <div class="grid">
+      <div class="card">
+        <h3>إضافة عميل + اشتراك</h3>
+        <input id="fullName" placeholder="اسم العميل" />
+        <input id="phone" placeholder="رقم الجوال" />
+        <input id="startDate" type="date" />
+        <select id="planId"></select>
+        <textarea id="notes" placeholder="ملاحظات"></textarea>
+        <button id="createCustomer">حفظ وإنشاء رابط العميل</button>
+        <div id="createMsg" class="muted"></div>
+      </div>
+
+      <div class="card">
+        <h3>إضافة منتج</h3>
+        <input id="pname" placeholder="اسم الوجبة" />
+        <select id="pcat">
+          <option value="breakfast">فطور</option>
+          <option value="lunch">غداء</option>
+          <option value="dinner">عشاء</option>
+          <option value="snack">سناك</option>
+        </select>
+        <input id="allowed" placeholder="أنواع الباقة المسموحة (comma) مثال: chicken,mixed" />
+        <button id="addProduct">إضافة منتج</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <h3>العملاء الحاليون</h3>
+      <table class="table" id="customersTable"></table>
+    </div>
+  </section>
+</main>
+<script>
+const loginBtn = document.getElementById('loginBtn');
+const adminArea = document.getElementById('adminArea');
+const loginCard = document.getElementById('loginCard');
+const loginMsg = document.getElementById('loginMsg');
+const planId = document.getElementById('planId');
+
+async function loadPlans(){
+  const plans = await fetch('/api/plans').then(r=>r.json());
+  planId.innerHTML = plans.map(p=>`<option value="${p.id}">${p.name} - ${p.days} يوم</option>`).join('');
+}
+
+async function loadCustomers(){
+  const rows = await fetch('/api/customers').then(r=>r.json());
+  const table = document.getElementById('customersTable');
+  table.innerHTML = `<tr><th>العميل</th><th>الباقة</th><th>الحالة</th><th>الرابط</th><th>إجراء</th></tr>` + rows.map(c=>{
+    const link = `${location.origin}/c/${c.subscription.linkToken}`;
+    const status = c.subscription.linkEnabled ? 'مفعل' : 'موقوف';
+    return `<tr>
+      <td>${c.fullName}<br><small>${c.phone}</small></td>
+      <td>${c.subscription.planName}<br><small>${c.subscription.startDate} → ${c.subscription.endDate}</small></td>
+      <td><span class="badge">${status}</span></td>
+      <td><span class="token">${link}</span><br><button class="secondary" onclick="navigator.clipboard.writeText('${link}')">نسخ</button></td>
+      <td><button onclick="toggleLink('${c.subscription.id}', ${!c.subscription.linkEnabled})">${c.subscription.linkEnabled ? 'إيقاف الرابط' : 'تفعيل الرابط'}</button></td>
+    </tr>`;
+  }).join('');
+}
+
+window.toggleLink = async (id, enabled)=>{
+  await fetch(`/api/subscriptions/${id}/link`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})});
+  loadCustomers();
+}
+
+loginBtn.onclick = async ()=>{
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  const res = await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+  const data = await res.json();
+  if(!res.ok){loginMsg.textContent=data.message;return;}
+  loginCard.classList.add('hidden');
+  adminArea.classList.remove('hidden');
+  await loadPlans();
+  await loadCustomers();
+}
+
+document.getElementById('createCustomer').onclick = async ()=>{
+  const payload = {
+    fullName: document.getElementById('fullName').value,
+    phone: document.getElementById('phone').value,
+    startDate: document.getElementById('startDate').value,
+    planId: Number(planId.value),
+    notes: document.getElementById('notes').value
+  };
+  const res = await fetch('/api/customers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const data = await res.json();
+  document.getElementById('createMsg').textContent = res.ok ? `تم الإنشاء: ${location.origin}${data.customerLink}` : data.message;
+  loadCustomers();
+}
+
+document.getElementById('addProduct').onclick = async ()=>{
+  const payload = {
+    name: document.getElementById('pname').value,
+    category: document.getElementById('pcat').value,
+    allowedPlanTypes: document.getElementById('allowed').value.split(',').map(s=>s.trim()).filter(Boolean),
+    calories: 0, protein:0, carbs:0, fats:0
+  };
+  await fetch('/api/products',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  alert('تمت إضافة المنتج');
+}
+</script>
+</body>
+</html>
