@@ -1,0 +1,16 @@
+:root{--bg:#f4fbf7;--card:#fff;--primary:#1f8f6a;--muted:#6a7a75}
+*{box-sizing:border-box;font-family:Arial,sans-serif}
+body{margin:0;background:var(--bg);color:#1a2a24}
+header{background:linear-gradient(90deg,#1f8f6a,#34b388);color:#fff;padding:16px 20px}
+main{max-width:1100px;margin:20px auto;padding:0 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{background:var(--card);border-radius:14px;padding:14px;box-shadow:0 8px 20px #1f8f6a18}
+input,select,button,textarea{width:100%;padding:10px;border:1px solid #d9e6e1;border-radius:10px;margin-top:6px;margin-bottom:8px}
+button{background:var(--primary);color:#fff;border:none;cursor:pointer}
+button.secondary{background:#eef6f2;color:#1a2a24}
+small,.muted{color:var(--muted)}
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#e7f8f1;color:#136e4f;font-size:12px}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:8px;border-bottom:1px solid #edf3f0;text-align:right}
+.hidden{display:none}
+.token{font-family:monospace;background:#eef6f2;padding:4px 8px;border-radius:8px}

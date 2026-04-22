@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Healthy Time Customer</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+<header><h2>Healthy Time | صفحة العميل</h2></header>
+<main>
+  <div class="card" id="profile">جاري التحميل...</div>
+  <div class="card" id="selectionCard" style="margin-top:12px">
+    <h3>اختيار وجبات اليوم</h3>
+    <input id="deliveryDate" type="date" />
+    <div id="meals"></div>
+    <div id="snacks" style="margin-top:8px"></div>
+    <button id="saveBtn">حفظ الاختيارات</button>
+    <div id="msg" class="muted"></div>
+  </div>
+</main>
+<script>
+const token = location.pathname.split('/').pop();
+let products = [];
+let sub;
+
+function card(p){
+  return `<label style="display:block;padding:6px;border-bottom:1px dashed #e7eeeb"><input type="checkbox" value="${p.id}" /> ${p.name} <small>(${p.category})</small></label>`;
+}
+
+async function load(){
+  const res = await fetch(`/api/customer/${token}/profile`);
+  const data = await res.json();
+  if(!res.ok){
+    document.getElementById('profile').innerHTML = `<h3>لا يمكن الوصول</h3><p>${data.message}</p>`;
+    document.getElementById('selectionCard').style.display='none';
+    return;
+  }
+  sub = data.customer.subscription;
+  products = data.availableProducts;
+  document.getElementById('profile').innerHTML = `
+    <h3>${data.customer.fullName}</h3>
+    <p>الباقة: ${sub.planName} | الحالة: <span class="badge">${data.status}</span></p>
+    <p>المدة: ${sub.startDate} → ${sub.endDate}</p>
+    <p>الوجبات: ${sub.selectedMeals}/${sub.totalMeals} | السناكات: ${sub.selectedSnacks}/${sub.totalSnacks} | الأيام المتبقية: ${sub.remainingDays}</p>
+  `;
+
+  document.getElementById('meals').innerHTML = '<h4>الوجبات</h4>' + products.filter(p=>p.category!=='snack').map(card).join('');
+  document.getElementById('snacks').innerHTML = '<h4>السناكات</h4>' + products.filter(p=>p.category==='snack').map(card).join('');
+}
+
+function selectedIds(container){
+  return [...container.querySelectorAll('input[type=checkbox]:checked')].map(i=>Number(i.value));
+}
+
+document.getElementById('saveBtn').onclick = async ()=>{
+  const mealIds = selectedIds(document.getElementById('meals'));
+  const snackIds = selectedIds(document.getElementById('snacks'));
+
+  if(mealIds.length > sub.mealsPerDay){
+    document.getElementById('msg').textContent = `الحد الأقصى للوجبات: ${sub.mealsPerDay}`;
+    return;
+  }
+  if(snackIds.length > sub.snacksPerDay){
+    document.getElementById('msg').textContent = `الحد الأقصى للسناكات: ${sub.snacksPerDay}`;
+    return;
+  }
+
+  const payload = {deliveryDate: document.getElementById('deliveryDate').value, mealProductIds: mealIds, snackProductIds: snackIds};
+  const res = await fetch(`/api/customer/${token}/select`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const data = await res.json();
+  document.getElementById('msg').textContent = res.ok ? 'تم حفظ اختياراتك بنجاح' : data.message;
+  if(res.ok) load();
+}
+
+load();
+</script>
+</body>
+</html>
